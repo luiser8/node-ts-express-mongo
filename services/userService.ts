@@ -42,8 +42,8 @@ export const postUser = async (user:IUser) => {
             password: encryptedPassword,
         });
 
-        const accesstoken = await sign(userCreate.id, userCreate.username);
-        const refreshtoken = await signrefresh(userCreate.id, userCreate.username);
+        const accesstoken = await sign(userCreate);
+        const refreshtoken = await signrefresh(userCreate);
 
         userCreate.accesstoken = accesstoken;
         userCreate.refreshtoken = refreshtoken;
@@ -71,8 +71,8 @@ export const putUser = async (user:IUser) => {
 
         const encryptedPassword = await bcrypt.hash(password, 10);
 
-        const accesstoken = await sign(user.id, user.username);
-        const refreshtoken = await signrefresh(user.id, user.username);
+        const accesstoken = await sign(user);
+        const refreshtoken = await signrefresh(user);
 
         const newUser = { firstname, lastname, email, username, password: encryptedPassword, accesstoken, refreshtoken, _id: id };
 
@@ -91,15 +91,24 @@ export const loginUser = async (user:IUser) => {
 
         if (userLogin && (await bcrypt.compare(password, userLogin.password))) {
 
-            const accesstoken = await sign(userLogin.id, userLogin.username);
-            const refreshtoken = await signrefresh(userLogin.id, userLogin.username);
+            const accesstoken = await sign(userLogin);
+            const refreshtoken = await signrefresh(userLogin);
 
             userLogin.accesstoken = accesstoken;
             userLogin.refreshtoken = refreshtoken;
 
             await userLogin.save();
 
-            return userLogin;
+            return {
+                userId: userLogin._id,
+                firstname: userLogin.firstname,
+                lastname: userLogin.lastname,
+                username: userLogin.username,
+                email: userLogin.email,
+                status: userLogin.status,
+                accesstoken: userLogin.accesstoken,
+                refreshtoken: userLogin.refreshtoken
+            };
         }
 
         return "Invalid Credentials";
@@ -107,6 +116,26 @@ export const loginUser = async (user:IUser) => {
       } catch (error) {
         return error;
       }
+}
+
+export const loginRefreshUser = async (refreshtoken:string) => {
+    try {
+        const user = await User.findOne({ refreshtoken });
+
+        if (user !== null) {
+            const accesstoken = await sign(user);
+
+            user.accesstoken = accesstoken;
+
+            await user.save();
+            return { accesstoken: user.accesstoken };
+        }
+
+        return "Invalid Refresh Token";
+
+    } catch (error) {
+        return error;
+    }
 }
 
 export const delUser = async (id: string) => {

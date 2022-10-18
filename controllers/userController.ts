@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { delUser, getUserById, getUsersAll, loginUser, postUser, putUser } from "../services/userService";
+import { delUser, getUserById, getUsersAll, loginRefreshUser, loginUser, postUser, putUser } from "../services/userService";
 
 export const getAll = async (_req: Request, res: Response) => {
     try{
@@ -55,6 +55,25 @@ export const login = async (req: Request, res: Response) => {
         }
 
     }catch(error: any){
+        res.status(409).json({error:error.message});
+    }
+};
+
+export const loginRefresh = async(req: Request, res: Response) => {
+    try{
+        const { refreshtoken } = req.body;
+        if (!(refreshtoken)) {
+            res.status(400).send("All input is required");
+        }
+
+        const user = await loginRefreshUser(refreshtoken);
+        if(user === "Invalid Credentials"){
+            res.status(200).send(user);
+        }else{
+            res.status(200).json(user);
+        }
+
+    }catch(error:any){
         res.status(409).json({error:error.message});
     }
 };
